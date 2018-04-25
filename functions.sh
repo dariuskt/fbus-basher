@@ -27,10 +27,9 @@ function get_data_len()
 	dec_to_hex2 $(get_len_dec "$1")
 }
 
-function reverse()
+function rev()
 {
-	#TODO implement rev as it is not present in openwrt
-	echo "$1"
+	sed 's/^/\n/;:a; s/^\(.*\n\)\(.\)/\2\1/;/\n$/!ba;s/\n//'
 }
 
 function ascii_to_gsm7_map()
