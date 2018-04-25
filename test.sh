@@ -16,3 +16,16 @@ echo
 
 
 
+echo -n "### ascii_to_gsm7 "
+
+sample_data="hello"
+expected_result="\xE8\x32\x9B\xFD\x06"
+test "$(ascii_to_gsm7 "$sample_data")" == "$expected_result" && echo -n . || echo -n F
+
+sample_data="Hi All. This"
+expected_result="\xC8\x34\x28\xC8\x66\xBB\x40\x54\x74\x7A\x0E"
+test "$(ascii_to_gsm7 "$sample_data")" == "$expected_result" && echo -n . || echo -n F
+
+echo
+
+

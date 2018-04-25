@@ -7,6 +7,11 @@ function setup_tty()
 	stty -F $dev 115200 raw -echo
 }
 
+function emit()
+{
+	echo "emit: $@" >&2
+}
+
 function get_len_dec()
 {
 	echo -ne "$1" | wc -c
@@ -20,6 +25,44 @@ function dec_to_hex2()
 function get_data_len()
 {
 	dec_to_hex2 $(get_len_dec "$1")
+}
+
+function reverse()
+{
+	#TODO implement rev as it is not present in openwrt
+	echo "$1"
+}
+
+function ascii_to_gsm7_map()
+{
+	# TODO: not implemented yet
+	echo -n "$1"
+}
+
+function ascii_to_gsm7()
+{
+	local data=''
+	local bin_data=''
+	local hex_byte=0
+	local byte=0
+
+	for hex_byte in $(echo -n "$1" | xxd -p -u -c 256 | sed 's/\(..\)/\1 /g')
+	do
+		hex_byte="$(ascii_to_gsm7_map $hex_byte)"
+		byte="$(printf "%d" "0x$hex_byte")"
+		bits="$(printf '%07d' "$(echo "obase=2;$byte" | bc)" | rev)"
+		bin_data="$bin_data$bits"
+	done
+
+	pad_bits=$(( 8 - $(echo -n $bin_data | wc -c) % 8 ))
+	bin_data="$bin_data$(head -c $pad_bits </dev/zero | tr '\0' '0' )"
+
+	for bits in $(echo $bin_data | sed 's/\(........\)/\1\n/g')
+	do
+		bits=$(echo "$bits" | rev)
+		byte=$(echo "obase=16;ibase=2;$bits" | bc)
+		printf '\\x%02X' "0x$byte"
+	done
 }
 
 function get_fbus_crc()
@@ -41,16 +84,12 @@ function get_fbus_crc()
 		else
 				even=$(($even ^ $dec_byte))
 		fi
-
-
-		#echo $byte_num: $byte
-		#printf ">> odd %08s; even %08s; byte %08s;\n" "$(echo "obase=2;$odd" | bc)" "$(echo "obase=2;$even" | bc)" "$(echo "obase=2;$dec_byte" | bc)" >&2
-		#echo =====
-
 	done
 
 	printf '\\x%02X\\x%02X' $odd $even
 }
+
+
 
 
 function build_sms_frame()
