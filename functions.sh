@@ -146,8 +146,32 @@ function build_sms_frame()
 	# Byte 9 to 11: 0x01, 0x02, 0x00 = Send SMS Message
 	sms_frame="\x00\x01\x00\x01\x02\x00"
 
+	# Byte 12: SMSC (12 bytes)
+	#     byte 12: length of type+number bytes
+	#     byte 13: type (0x91 international)
+	#     bytes 14-23: phone number in octet format
 	sms_frame="${sms_frame}$(encode_phone_number $smsc)"
 
+	# Byte 24: ?
+	# Byte 28: ?
+	sms_frame="${sms_frame}\xFF\xFF\xFF\xFF\xFF"
+
+	# Byte 29: Destination phone (12 bytes)
+	#     byte 29: length of type+number bytes
+	#     byte 30: type (0x91 international)
+	#     bytes 31-40: phone number in octet format
+	sms_frame="${sms_frame}$(encode_phone_number $destnum)"
+
+	# Byte 41: Validity period
+	# Bytes 42-47: Service Center Time Stamp?
+	sms_frame="${sms_frame}\xFF"
+	sms_frame="${sms_frame}\xFF\xFF\xFF\xFF\xFF\xFF"
+
+	# Bytes 48~: The message
+	sms_frame="${sms_frame}$(ascii_to_gsm7 "$message")"
+
+	# ends in 0x00
+	sms_frame="${sms_frame}\x00"
 
 	echo -n "$sms_frame"
 }
