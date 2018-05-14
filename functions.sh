@@ -16,6 +16,11 @@ function get_len_dec()
 {
 	echo -ne "$1" | wc -c
 }
+function dec_to_hex1()
+{
+	len="$1"
+	printf '\\x%02X' $len
+}
 
 function dec_to_hex2()
 {
@@ -25,6 +30,10 @@ function dec_to_hex2()
 function get_data_len()
 {
 	dec_to_hex2 $(get_len_dec "$1")
+}
+function get_phone_len()
+{
+	dec_to_hex1 $(get_len_dec "$1")
 }
 
 function rev()
@@ -64,6 +73,45 @@ function ascii_to_gsm7()
 	done
 }
 
+function num_to_oct()
+{
+	num=${1//[^0-9]/}
+	data=''
+
+	for two_digits in $(echo $num | sed 's/\(..\)/\1 /g')
+	do
+		two_digits=${two_digits}F
+		lower=${two_digits:0:1}
+		upper=${two_digits:1:1}
+
+		data="$data\x$upper$lower"
+	done
+
+	echo "$data"
+}
+
+function encode_phone_number() {
+	num="$1"
+	data=''
+
+	# number type
+	data="\x91"
+
+	# encode number itself
+	data="$data$(num_to_oct $num)"
+
+	# add length
+	data="$(get_phone_len "$data")$data"
+
+	# add padding
+	while [ $(echo -ne "$data" | wc -c) -lt 12 ]
+	do
+		data="$data\x00"
+	done
+
+	echo -n "$data"
+}
+
 function get_fbus_crc()
 {
 	pkg="$1"
@@ -90,7 +138,6 @@ function get_fbus_crc()
 
 
 
-
 function build_sms_frame()
 {
 	# globals $smsc $destnum $message
@@ -98,7 +145,10 @@ function build_sms_frame()
 	# Byte 6 to 8: Start ofthe SMS Frame Header. 0x00, 0x01, 0x00
 	# Byte 9 to 11: 0x01, 0x02, 0x00 = Send SMS Message
 	sms_frame="\x00\x01\x00\x01\x02\x00"
-	
+
+	sms_frame="${sms_frame}$(encode_phone_number $smsc)"
+
+
 	echo -n "$sms_frame"
 }
 
