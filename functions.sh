@@ -152,9 +152,9 @@ function build_sms_frame()
 	#     bytes 14-23: phone number in octet format
 	sms_frame="${sms_frame}$(encode_phone_number $smsc)"
 
-	# Byte 24: ?
-	# Byte 28: ?
-	sms_frame="${sms_frame}\xFF\xFF\xFF\xFF\xFF"
+	# Byte 24:
+	# Byte 28:
+	sms_frame="${sms_frame}\x15\x00\x00\x00\x33"
 
 	# Byte 29: Destination phone (12 bytes)
 	#     byte 29: length of type+number bytes
@@ -163,9 +163,10 @@ function build_sms_frame()
 	sms_frame="${sms_frame}$(encode_phone_number $destnum)"
 
 	# Byte 41: Validity period
+	sms_frame="${sms_frame}\xA7"
+
 	# Bytes 42-47: Service Center Time Stamp?
-	sms_frame="${sms_frame}\xFF"
-	sms_frame="${sms_frame}\xFF\xFF\xFF\xFF\xFF\xFF"
+	sms_frame="${sms_frame}\x00\x00\x00\x00\x00\x00"
 
 	# Bytes 48~: The message
 	sms_frame="${sms_frame}$(ascii_to_gsm7 "$message")"
