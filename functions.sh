@@ -27,9 +27,11 @@ function dec_to_hex2()
 	len="$1"
 	printf '\\x%02X\\x%02X' $(($len >> 8)) $(($len & 0xff))
 }
-function get_data_len()
+function get_frame_len()
 {
-	dec_to_hex2 $(get_len_dec "$1")
+	len="$(get_len_dec "$1")"
+	len=$(($len+2))
+	dec_to_hex2 "$len"
 }
 function get_phone_len()
 {
@@ -171,9 +173,6 @@ function build_sms_frame()
 	# Bytes 48~: The message
 	sms_frame="${sms_frame}$(ascii_to_gsm7 "$message")"
 
-	# ends in 0x00
-	sms_frame="${sms_frame}\x00"
-
 	echo -n "$sms_frame"
 }
 
@@ -188,13 +187,19 @@ function fbus_encapsulate()
 	local fbus_frame="\x1E\x00\x0C\x02"
 
 	# Byte 4-5: Message length.
-	fbus_frame="${fbus_frame}$(get_data_len "$sms_frame")"
+	fbus_frame="${fbus_frame}$(get_frame_len "$sms_frame")"
 
 	# add payload
 	fbus_frame="${fbus_frame}${sms_frame}"
 
+	# frames to go 0x01 means last frame
+	fbus_frame="${fbus_frame}\x01"
+
+	# sequence number
+	fbus_frame="${fbus_frame}\x43"
+
 	# padd in case frame length is odd
-	fbus_bytes="$(echo -e "$fbus_frame" | wc -c)"
+	fbus_bytes="$(echo -ne "$fbus_frame" | wc -c)"
 	if [ $(($fbus_bytes & 0x01)) -eq 1 ]
 	then
 		fbus_frame="${fbus_frame}\x00"
