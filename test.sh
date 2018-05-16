@@ -62,6 +62,23 @@ echo
 
 
 
+echo -n "### get_fbus_crc "
+
+sample_data="\x03\x01\x02"
+expected_result="\x01\x01"
+result="$(get_fbus_crc "$sample_data")"
+test "$result" == "$expected_result" && echo -n . || test_report "$sample_data" "$result" "$expected_result"
+
+sample_data="\x1E\x00\x0C\xD1\x00\x07\x00\x01\x00\x03\x00\x01\x60\x00"
+expected_result="\x72\xD5"
+result="$(get_fbus_crc "$sample_data")"
+test "$result" == "$expected_result" && echo -n . || test_report "$sample_data" "$result" "$expected_result"
+
+
+echo
+
+
+
 echo -n "### build_sms_frame "
 
 destnum="040378007400000000"
