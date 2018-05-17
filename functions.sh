@@ -33,7 +33,7 @@ function get_frame_len()
 	len=$(($len+2))
 	dec_to_hex2 "$len"
 }
-function get_phone_len()
+function get_len()
 {
 	dec_to_hex1 $(get_len_dec "$1")
 }
@@ -94,22 +94,13 @@ function num_to_oct()
 
 function encode_phone_number() {
 	num="$1"
-	data=''
+	data="\x82\x0C${2}\x08${3}"
 
 	# number type
-	data="\x91"
+	data="${data}\x91"
 
 	# encode number itself
 	data="$data$(num_to_oct $num)"
-
-	# add length
-	data="$(get_phone_len "$data")$data"
-
-	# add padding
-	while [ $(echo -ne "$data" | wc -c) -lt 12 ]
-	do
-		data="$data\x00"
-	done
 
 	echo -n "$data"
 }
@@ -138,41 +129,34 @@ function get_fbus_crc()
 	printf '\\x%02X\\x%02X' $odd $even
 }
 
+function build_message_block() {
+	msg="$1"
 
+	data="$(ascii_to_gsm7 "$msg")"
+	len1=$( dec_to_hex1 $(( $(get_len_dec "$data") + 4)) )
+	len2="$(get_len "$data")"
+	len3="$(get_len "$msg")"
+	data="\x80${len1}${len2}${len3}${data}"
+
+	echo -n "$data"
+}
 
 function build_sms_frame()
 {
 	# globals $smsc $destnum $message
 
-	# Byte 6 to 8: Start ofthe SMS Frame Header. 0x00, 0x01, 0x00
-	# Byte 9 to 11: 0x01, 0x02, 0x00 = Send SMS Message
-	sms_frame="\x00\x01\x00\x01\x02\x00"
+	# Byte 6~14: Documentation is a LIE! https://github.com/pkot/gnokii/blob/master/common/phones/nk6510.c#L2060
+	sms_frame="\x00\x01\x00\x02\x00\x00\x00\x55\x55"
+	# magic folows
+	sms_frame="${sms_frame}\x01\x02\xXX\x11\x00\x00\x00\x00\x04"
 
-	# Byte 12: SMSC (12 bytes)
-	#     byte 12: length of type+number bytes
-	#     byte 13: type (0x91 international)
-	#     bytes 14-23: phone number in octet format
-	sms_frame="${sms_frame}$(encode_phone_number $smsc)"
+	sms_frame="${sms_frame}$(encode_phone_number "$destnum" '\x01' '\x0b')"
+	sms_frame="${sms_frame}$(encode_phone_number "$smsc"    '\x02' '\x07')"
+	sms_frame="${sms_frame}$(build_message_block "$message" '\x03')"
 
-	# Byte 24:
-	# Byte 28:
-	sms_frame="${sms_frame}\x15\x00\x00\x00\x33"
+	sms_frame="${sms_frame}\x08\x04\x01\x09"
 
-	# Byte 29: Destination phone (12 bytes)
-	#     byte 29: length of type+number bytes
-	#     byte 30: type (0x91 international)
-	#     bytes 31-40: phone number in octet format
-	sms_frame="${sms_frame}$(encode_phone_number $destnum)"
-
-	# Byte 41: Validity period
-	sms_frame="${sms_frame}\xA7"
-
-	# Bytes 42-47: Service Center Time Stamp?
-	sms_frame="${sms_frame}\x00\x00\x00\x00\x00\x00"
-
-	# Bytes 48~: The message
-	sms_frame="${sms_frame}$(ascii_to_gsm7 "$message")"
-
+	
 	echo -n "$sms_frame"
 }
 
@@ -196,7 +180,7 @@ function fbus_encapsulate()
 	fbus_frame="${fbus_frame}\x01"
 
 	# sequence number
-	fbus_frame="${fbus_frame}\x43"
+	fbus_frame="${fbus_frame}\x60"
 
 	# padd in case frame length is odd
 	fbus_bytes="$(echo -ne "$fbus_frame" | wc -c)"
