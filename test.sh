@@ -18,6 +18,11 @@ test "$(get_fbus_crc "$sample_data")" == '\x72\xD5' && echo -n . || echo -n F
 sample_data="\x1E\x00"
 test "$(get_fbus_crc "$sample_data")" == '\x1E\x00' && echo -n . || echo -n F
 
+sample_data="\x1E\x00\x0C\x0C\x00\x0A\x00\x01\x00\x42\x01\x1B\x01\x01\x40\x00"
+expected_result="\x52\x5F"
+result="$(get_fbus_crc "$sample_data")"
+test "$result" == "$expected_result" && echo -n . || test_report "$sample_data" "$result" "$expected_result"
+
 echo 
 
 
@@ -31,6 +36,11 @@ test "$(ascii_to_gsm7 "$sample_data")" == "$expected_result" && echo -n . || ech
 sample_data="Hi All. This"
 expected_result="\xC8\x34\x28\xC8\x66\xBB\x40\x54\x74\x7A\x0E"
 test "$(ascii_to_gsm7 "$sample_data")" == "$expected_result" && echo -n . || echo -n F
+
+sample_data="Testas"
+expected_result="\xD4\xF2\x9C\x1E\x9E\x03"
+result="$(ascii_to_gsm7 "$sample_data")"
+test "$result" == "$expected_result" && echo -n . || test_report "$sample_data" "$result" "$expected_result"
 
 echo
 
