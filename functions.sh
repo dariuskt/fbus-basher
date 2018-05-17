@@ -133,9 +133,17 @@ function build_message_block() {
 	msg="$1"
 
 	data="$(ascii_to_gsm7 "$msg")"
-	len1=$( dec_to_hex1 $(( $(get_len_dec "$data") + 4)) )
+	len="$(( $(get_len_dec "$data") + 4))"
 	len2="$(get_len "$data")"
 	len3="$(get_len "$msg")"
+
+	while [ $(( $(( $(get_len_dec "$data") + 4)) % 8 )) -ne 0 ]
+	do
+		data="${data}\x55"
+	done
+
+	len1=$( dec_to_hex1 $(( $(get_len_dec "$data") + 4)) )
+
 	data="\x80${len1}${len2}${len3}${data}"
 
 	echo -n "$data"
@@ -152,9 +160,9 @@ function build_sms_frame()
 
 	sms_frame="${sms_frame}$(encode_phone_number "$destnum" '\x01' '\x0b')"
 	sms_frame="${sms_frame}$(encode_phone_number "$smsc"    '\x02' '\x07')"
-	sms_frame="${sms_frame}$(build_message_block "$message" '\x03')"
+	sms_frame="${sms_frame}$(build_message_block "$message")"
 
-	sms_frame="${sms_frame}\x08\x04\x01\x09"
+	sms_frame="${sms_frame}\x08\x04\x01\xA9"
 
 	
 	echo -n "$sms_frame"
