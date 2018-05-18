@@ -154,17 +154,25 @@ function build_sms_frame()
 	# globals $smsc $destnum $message
 
 	# Byte 6~14: Documentation is a LIE! https://github.com/pkot/gnokii/blob/master/common/phones/nk6510.c#L2060
-	sms_frame="\x00\x01\x00\x02\x00\x00\x00\x55\x55"
-	# magic folows
-	sms_frame="${sms_frame}\x01\x02\xXX\x11\x00\x00\x00\x00\x04"
+	sms_header="\x00\x01\x00\x02\x00\x00\x00\x55\x55"
+	# magic follows
+	sms_header="${sms_frame}\x01\x02"
+	# more magic
+	sms_frame="\x11\x00\x00\x00\x00\x04"
+
 
 	sms_frame="${sms_frame}$(encode_phone_number "$destnum" '\x01' '\x0b')"
 	sms_frame="${sms_frame}$(encode_phone_number "$smsc"    '\x02' '\x07')"
 	sms_frame="${sms_frame}$(build_message_block "$message")"
 
+
 	sms_frame="${sms_frame}\x08\x04\x01\xA9"
 
-	
+
+	len=$(( $(get_len_dec "$sms_frame") + 2 ))
+	len=$(dec_to_hex1 "$len")
+	sms_frame="${sms_header}${len}${sms_frame}"
+
 	echo -n "$sms_frame"
 }
 
