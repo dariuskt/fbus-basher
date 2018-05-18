@@ -156,7 +156,7 @@ function build_sms_frame()
 	# Byte 6~14: Documentation is a LIE! https://github.com/pkot/gnokii/blob/master/common/phones/nk6510.c#L2060
 	sms_header="\x00\x01\x00\x02\x00\x00\x00\x55\x55"
 	# magic follows
-	sms_header="${sms_frame}\x01\x02"
+	sms_header="${sms_header}\x01\x02"
 	# more magic
 	sms_frame="\x11\x00\x00\x00\x00\x04"
 
@@ -207,6 +207,9 @@ function fbus_encapsulate()
 
 	# add crc
 	fbus_frame="${fbus_frame}$(get_fbus_crc "$fbus_frame")"
+
+	# add preamble
+	fbus_frame="$(printf '\x55%.0s' {1..512})$fbus_frame"
 
 	echo -n "$fbus_frame"
 }

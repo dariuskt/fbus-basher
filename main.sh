@@ -17,7 +17,5 @@ fbus_frame="$(fbus_encapsulate "$sms_frame")"
 
 echo "fbus: $fbus_frame"
 
-
 echo -ne "$fbus_frame" > /dev/ttyUSB0
-
 
